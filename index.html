@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relay World - A Nostr Adventure Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/ui.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="icon" type="image/png" href="assets/icons/favicon.png">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        <div id="weather-overlay" class="weather-effect"></div>
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="ui-container">
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <div id="login-panel">
+                <div class="pixel-corner corner-tl"></div>
+                <div class="pixel-corner corner-tr"></div>
+                <div class="pixel-corner corner-bl"></div>
+                <div class="pixel-corner corner-br"></div>
+                <div class="triforce-container">
+                    <div class="triforce top"></div>
+                    <div class="triforce left"></div>
+                    <div class="triforce right"></div>
+                </div>
+                <h1>Relay World</h1>
+                <p>IT IS DANGEROUS TO GO ALONE! TAKE THIS...</p>
+                <p>A legendary adventure awaits! Explore the Nostr network in a vibrant 8-bit world.</p>
+                
+                <!-- Updated login options with clearer separation -->
+                <div id="login-options">
+                    <button id="login-button" class="primary-button">CONNECT WITH NOSTR</button>
+                    <div class="login-extras hide">
+                        <div class="separator">AFTER LOGGING IN</div>
+                        <button id="login-nwc" class="secondary-button">CONNECT LIGHTNING WALLET</button>
+                    </div>
+                </div>
+                
+                <div class="loader" id="login-loader"></div>
+                <div id="login-status"></div>
+                <div class="instructions">
+                    <h3>QUEST GUIDE</h3>
+                    <p><strong>MOVEMENT:</strong> WASD or Arrow Keys</p>
+                    <p><strong>INTERACT:</strong> E or Space near users</p>
+                    <p><strong>CHAT:</strong> Enter for global chat, V for voice</p>
+                    <p><strong>ZAP:</strong> Z to zap nearby players</p>
+                    <p><strong>GOAL:</strong> Explore, connect, and build your legend!</p>
+                </div>
+            </div>
+            <div class="sound-wave" id="sound-wave"></div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="hide">
+            <h3>Loading Relay World</h3>
+            <div class="spinner"></div>
+            <p id="loading-status">Connecting to relay...</p>
+        </div>
+
+        <!-- Top Bar -->
+        <div id="top-bar" class="hide">
+            <div id="score-display">Score: 0</div>
+            <div id="game-controls">
+                <div class="relay-controls">
+                    <div class="relay-group">
+                        <label for="relay-selector">Explorer Relay:</label>
+                        <select id="relay-selector">
+                            <option value="" disabled>Select Explorer Relay</option>
+                        </select>
+                        <button id="relay-info-button" class="icon-button" title="Relay Info">ℹ️</button>
+                    </div>
+                    <div class="custom-relay">
+                        <input type="text" id="custom-relay-input" placeholder="wss://your-relay.com">
+                        <button id="add-relay-button" class="pixel-button">Add Explorer</button>
+                    </div>
+                </div>
+                
+                <select id="kinds-selector">
+                    <option value="1">Kind 1 (Notes)</option>
+                </select>
+                <input type="text" id="custom-kind-input" placeholder="Custom kind...">
+                <button id="add-kind-button" class="pixel-button">Add Kind</button>
+                <select id="time-filter">
+                    <option value="all">All Time</option>
+                    <option value="hour">Last Hour</option>
+                    <option value="day">Last Day</option>
+                    <option value="month">Last Month</option>
+                </select>
+            </div>
+            <div id="voice-controls">
+                <button id="voice-toggle" class="icon-button"><span id="voice-icon">🎙️</span></button>
+                <div id="voice-indicator"></div>
+            </div>
+        </div>
+
+        <!-- Player Profile -->
+        <div id="player-profile" class="hide">
+            <div id="player-profile-header">
+                <img id="player-profile-image" src="assets/icons/default-avatar.png" alt="Profile">
+                <div id="player-profile-details">
+                    <div id="player-profile-name">Loading...</div>
+                    <div id="player-profile-npub">Loading...</div>
+                    <div id="player-profile-title"></div>
+                </div>
+            </div>
+            <div id="player-profile-stats">
+                <div class="profile-stat"><div class="label">Level:</div><div class="value" id="profile-level">1</div></div>
+                <div class="profile-stat"><div class="label">Score:</div><div class="value" id="profile-score">0</div></div>
+                <div class="profile-stat"><div class="label">Items:</div><div class="value" id="profile-items">0</div></div>
+                <div class="profile-stat"><div class="label">Interactions:</div><div class="value" id="profile-interactions">0</div></div>
+                <div class="profile-stat"><div class="label">Zaps:</div><div class="value" id="profile-zaps">0</div></div>
+            </div>
+            <div id="player-actions">
+                <button id="inventory-button" class="action-button">Inventory</button>
+                <button id="shop-button" class="action-button">Shop</button>
+                <button id="guild-button" class="action-button">Guild</button>
+                <button id="pet-button" class="action-button">Pet</button>
+                <button id="faction-button" class="action-button">Faction</button>
+                <button id="dungeon-button" class="action-button">Dungeon</button>
+                <button id="stash-button" class="action-button">Stash</button>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="leaderboard-container" class="hide">
+            <h3>Leaderboard</h3>
+            <div id="leaderboard-tabs">
+                <button class="tab-button active" data-type="score">Score</button>
+                <button class="tab-button" data-type="items">Items</button>
+                <button class="tab-button" data-type="quests">Quests</button>
+                <button class="tab-button" data-type="zaps">Zaps</button>
+            </div>
+            <div id="leaderboard-entries"></div>
+        </div>
+
+        <!-- User Popup -->
+        <div id="user-popup" class="hide" data-pubkey="">
+            <div id="user-popup-header">
+                <img id="user-popup-image" src="assets/icons/default-avatar.png" alt="User">
+                <div id="user-popup-details">
+                    <div id="user-popup-name">Loading...</div>
+                    <div id="user-popup-npub">Loading...</div>
+                </div>
+                <button id="user-popup-close">×</button>
+            </div>
+            <div id="user-popup-actions">
+                <button class="user-popup-button" id="follow-button">Follow</button>
+                <button class="user-popup-button" id="chat-button">Chat</button>
+                <button class="user-popup-button" id="voice-chat-button">Voice</button>
+                <button class="user-popup-button" id="trade-button">Trade</button>
+                <button class="user-popup-button" id="zap-button">Zap</button>
+            </div>
+            <div id="user-stats-container">
+                <h4>Stats</h4>
+                <div class="user-stats">
+                    <div class="user-stat">
+                        <span class="label">Level:</span>
+                        <span class="value" id="user-level">1</span>
+                    </div>
+                    <div class="user-stat">
+                        <span class="label">Score:</span>
+                        <span class="value" id="user-score">0</span>
+                    </div>
+                    <div class="user-stat">
+                        <span class="label">Guild:</span>
+                        <span class="value" id="user-guild">None</span>
+                    </div>
+                    <div class="user-stat">
+                        <span class="label">Faction:</span>
+                        <span class="value" id="user-faction">None</span>
+                    </div>
+                </div>
+            </div>
+            <div id="user-notes-container">
+                <h4>Recent Notes</h4>
+                <div id="user-notes"></div>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chat-container" class="hide">
+            <div id="chat-messages"></div>
+            <div class="chat-input-wrapper">
+                <input type="text" id="chat-input" placeholder="Type a message...">
+                <button id="send-chat-button">Send</button>
+            </div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls" class="hide">
+            <div id="mobile-control-up" class="mobile-control-button">↑</div>
+            <div id="mobile-control-down" class="mobile-control-button">↓</div>
+            <div id="mobile-control-left" class="mobile-control-button">←</div>
+            <div id="mobile-control-right" class="mobile-control-button">→</div>
+            <div id="mobile-control-action" class="mobile-control-button">A</div>
+        </div>
+
+        <!-- Quest Display -->
+        <div id="quest-display" class="hide"></div>
+        
+        <!-- Mini Map -->
+        <canvas id="mini-map" width="150" height="150" class="hide"></canvas>
+        
+        <!-- Proximity Voice Chat Indicators -->
+        <div id="voice-chat-indicators"></div>
+        
+        <!-- Toast Notifications -->
+        <div id="toast-container"></div>
+        
+        <!-- Action Popup -->
+        <div id="action-popup" class="hide"></div>
+        
+        <!-- Trade Popup -->
+        <div id="trade-popup" class="hide"></div>
+        
+        <!-- Zap Interface -->
+        <div id="zap-interface" class="hide">
+            <div id="zap-header">
+                <h3>Zap Player</h3>
+                <button id="zap-close">×</button>
+            </div>
+            <div id="zap-content">
+                <div class="zap-target">
+                    <img id="zap-target-image" src="assets/icons/default-avatar.png">
+                    <div id="zap-target-name">Target Name</div>
+                </div>
+                <div class="zap-amount-container">
+                    <div class="zap-presets">
+                        <button class="zap-preset" data-amount="21">21 ⚡</button>
+                        <button class="zap-preset" data-amount="210">210 ⚡</button>
+                        <button class="zap-preset" data-amount="2100">2100 ⚡</button>
+                    </div>
+                    <div class="zap-custom">
+                        <input type="number" id="zap-amount" placeholder="Custom amount" min="1" value="21">
+                        <span class="zap-unit">sats</span>
+                    </div>
+                </div>
+                <textarea id="zap-message" placeholder="Add a message (optional)"></textarea>
+            </div>
+            <button id="zap-send-button" class="primary-button">Send Zap</button>
+        </div>
+
+        <!-- Inventory Interface -->
+        <div id="inventory-interface" class="hide">
+            <div id="inventory-header">
+                <h3>Inventory</h3>
+                <button id="inventory-close">×</button>
+            </div>
+            <div id="inventory-tabs">
+                <button class="tab-button active" data-tab="items">Items</button>
+                <button class="tab-button" data-tab="equipment">Equipment</button>
+                <button class="tab-button" data-tab="collectibles">Collectibles</button>
+            </div>
+            <div id="inventory-content"></div>
+        </div>
+
+        <!-- Bitcoin Connect Modal -->
+        <div id="bitcoin-connect-modal" class="hide">
+            <div id="bc-modal-content">
+                <div id="bc-modal-header">
+                    <h3 id="bc-modal-title">Connect Lightning Wallet</h3>
+                    <button id="bc-modal-close">×</button>
+                </div>
+                <div id="bc-connector-list">
+                    <div class="bc-connector" data-connector="nwc">
+                        <img class="bc-connector-icon" src="assets/icons/nwc.png" alt="NWC">
+                        <div class="bc-connector-name">Nostr Wallet Connect</div>
+                    </div>
+                    <div class="bc-connector" data-connector="alby">
+                        <img class="bc-connector-icon" src="assets/icons/alby.png" alt="Alby">
+                        <div class="bc-connector-name">Alby Extension</div>
+                    </div>
+                    <div class="bc-connector" data-connector="webln">
+                        <img class="bc-connector-icon" src="assets/icons/webln.png" alt="WebLN">
+                        <div class="bc-connector-name">WebLN Compatible</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+    <script src="https://unpkg.com/simple-peer/simplepeer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@getalby/bitcoin-connect/dist/index.browser.js"></script>
+    
+    <!-- Game Scripts - Use dynamic imports for better module handling -->
+    <script type="module">
+        // Dynamically import all modules
+        Promise.all([
+            import('./js/utils.js'),
+            import('./js/player.js'),
+            import('./js/items.js'),
+            import('./js/nostr.js'),
+            import('./js/zaps.js'),
+            import('./js/audio.js'),
+            import('./js/ui.js'),
+            import('./js/game.js'),
+            import('./js/debug.js'),
+            import('./js/main.js')
+        ]).then(([
+            Utils, Player, Items, Nostr, Zaps, Audio, UI, Game, Debug, RelayWorld
+        ]) => {
+            // Make modules globally available
+            window.Utils = Utils.default;
+            window.Player = Player.default;
+            window.Items = Items.default;
+            window.Nostr = Nostr.default;
+            window.Zaps = Zaps.default;
+            window.Audio = Audio.default;
+            window.UI = UI.default;
+            window.Game = Game.default;
+            window.Debug = Debug.default;
+            window.RelayWorld = RelayWorld.default;
+
+            // Initialize the game
+            window.RelayWorld.init();
+        }).catch(error => {
+            console.error('Failed to load modules:', error);
+            document.getElementById('login-status').textContent = 'Error loading game: ' + error.message;
+        });
+    </script>
+</body>
+</html>
